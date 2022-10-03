@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Traffic Incidents Map</title>
+	<meta charset="utf-8">
+
+	<script src="https://api.mqcdn.com/sdk/mapquest-js/v1.3.2/mapquest.js"></script>
+
+	<link type="text/css" rel="stylesheet" href="https://api.mqcdn.com/sdk/mapquest-js/v1.3.2/mapquest.css" />
+
+	<script>
+		function makeQuerry(URL, latitude, longitude) {
+			// This function makes an asynchronus AJAX call to the online repository
+			const xhttp = new XMLHttpRequest();
+
+			xhttp.onreadystatechange = function() {
+				// This function handles the response from the querry once it is completed.
+				if(this.readyState == 4 && this.status == 200) {
+					myJson = JSON.parse(this.responseText);
+					// extract the array from JSON file
+					let incidentList = myJson.incidents;
+					// first build the list and then the map
+					buildTable(incidentList);
+					// pass the latitude and longitude as well to center the map
+					buildMap(incidentList, latitude, longitude);
+				}
+			}
+
+			xhttp.open("GET", URL, true);
+			xhttp.send();
+		}
+
+		function getLocation() {
+			// This function extracts the city chosen by the user and calls the buildURL function with selected coordinates
+			let citiesCoordinates = {
+				// a map of maps to identify easily and efficiently the coordinates of the cities
+				"New York": {
+					"latitude": 40.71,
+					"longitude": -74.00,
+				},
+				"Los Angeles": {
+					"latitude": 34.05,
+					"longitude": -118.24,
+				},
+				"Chicago": {
+					"latitude": 41.85,
+					"longitude": -87.65,
+				},
+				"Seattle": {
+					"latitude": 47.60,
+					"longitude": -122.33,
+				},
+				"Washington DC": {
+					"latitude": 38.89,
+					"longitude": -77.03,
+				},
+			};
+			let selectedCity = document.getElementById("selectedCity").value;
+			buildURL(citiesCoordinates[selectedCity]["latitude"], citiesCoordinates[selectedCity]["longitude"]);
+		}
+
+		function buildURL(latitude, longitude) {
+			// This function builds the URL with the details for the query and calls the makeQuerry function
+			KEY = 'jcEDQkJp29SOE6eu2cQdnqRfELZg68e5';
+			// build the url as a string by making the 0.22 calibration
+			URL = 'http://www.mapquestapi.com/traffic/v2/incidents?key=' + KEY + '&boundingBox=' + (latitude-0.22) + ',' + (longitude-0.22) + ',' + (latitude+0.22) + ',' + (longitude+0.22) + '&filters=construction,incidents';
+			// pass latitude and longitude to reach the buildMap function
+			makeQuerry(URL, latitude, longitude);
+		}
+
+		function buildTable(incidentList) {
+			// This function builds the empty html <table> below
+			var tbody = document.getElementById("tbody");
+			var id = 1;
+
+			incidentList.forEach(element => {
+				// add new row
+				var tr = "<tr>";
+				// increment the id to make the number before each incident unique 
+				tr += "<td>" + id++ + "</td>" + "<td>" + element.shortDesc + "</td></tr>";
+				// set the HTML content of the <table> element
+				tbody.innerHTML += tr;
+			});
+		}
+
+		function buildMap(incidentList, latitude, longitude) {
+			// This function builds the map in the empty <div> and adds markers for the incidents
+			L.mapquest.key = 'jcEDQkJp29SOE6eu2cQdnqRfELZg68e5';
+
+			// 'map' refers to a <div> element with the ID map
+			var map = L.mapquest.map('map', {
+ 				center: [latitude, longitude],
+  				// L.mapquest.tileLayer('map') is the MapQuest map tile layer
+  				layers: L.mapquest.tileLayer('map'),
+  				zoom: 12
+			});
+			// add a marker on map for each incident in the passed parameter incidentList
+			incidentList.forEach(element => {
+				L.circle([element.lat, element.lng], { radius: 2 }).addTo(map);
+			});
+		}
+
+	</script>
+
+</head>
+<body>
+	<!-- This is a HTML page with <div> elements that will allow users to choose a city to display current incidents on a map -->
+	<div>
+		<!-- Greeting text and information about how to use the site as <p> elements -->
+		<p>Welcome to the Traffic Incidents Map!</p>
+		<p>Choose the city from the list below and press the 'See incidents' button to display the selected city's map with markers in the affected locations. Also, below the map will appear a detailed list of the incidents.</p>
+	</div>
+	<div>
+		<form>
+			<select id="selectedCity" style="height: 22px; width: 125px; border-radius: 4px;">
+				<!-- List of cities to choose from -->
+				<option value="New York">New York</option>
+				<option value="Los Angeles">Los Angeles</option>
+				<option value="Chicago">Chicago</option>
+				<option value="Seattle">Seattle</option>
+				<option value="Washington DC">Washington DC</option>
+			</select>
+			<!-- Button to request for information about the selected city -->
+			<input type="button" value="See incidents" onclick="getLocation()" style="margin-left: 5px;">
+		</form>
+	</div>
+	<div id="map" style="width: 100%; height: 530px;"></div>
+	<div>
+		<table>
+			<!-- The table where all the incident details are listed -->
+			<tbody id="tbody"></tbody>
+		</table>
+	</div>
+</body>
+</html>
